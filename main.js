@@ -58,6 +58,15 @@ const server = http.createServer(async (req, res) => {
             await fs.promises.writeFile(filePath, body);
             res.writeHead(201, { "Content-Type": "text/plain" });
             return res.end("Created");
+        } else if (req.method === "DELETE") {
+            try {
+                await fs.promises.unlink(filePath);
+                res.writeHead(200, { "Content-Type": "text/plain" });
+                return res.end("OK");
+            } catch (err) {
+                res.writeHead(404, { "Content-Type": "text/plain" });
+                return res.end("Not Found");
+            }
         } else {
             res.writeHead(405, { "Content-Type": "text/plain" });
             return res.end("Method Not Allowed");
