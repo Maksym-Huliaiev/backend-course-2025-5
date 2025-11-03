@@ -3,6 +3,7 @@ const fs = require("fs");
 const http = require("http");
 const { URL } = require("url");
 const path = require("path");
+const request = require("superagent");
 
 const program = new Command();
 
@@ -18,6 +19,14 @@ console.log(opts);
 
 if (!fs.existsSync(opts.cache)) {
     fs.mkdirSync(opts.cache);
+}
+
+async function fetchFromHttpCatAndCache(code, filePath) {
+    const url = `https://http.cat/${code}`;
+    const resp = await request.get(url).buffer(true).ok((res) => res.status < 400);
+    // зберігаємо в кеш
+    await fs.promises.writeFile(filePath, resp.body);
+    return resp.body;
 }
 
 const server = http.createServer(async (req, res) => {
@@ -42,8 +51,14 @@ const server = http.createServer(async (req, res) => {
                 res.writeHead(200, { "Content-Type": "image/jpeg" });
                 return res.end(data);
             } catch (err) {
-                res.writeHead(404, { "Content-Type": "text/plain" });
-                return res.end("Not Found");
+                try {
+                    const data = await fetchFromHttpCatAndCache(code, filePath);
+                    res.writeHead(200, { "Content-Type": "image/jpeg" });
+                    return res.end(data);
+                } catch (fetchErr) {
+                    res.writeHead(404, { "Content-Type": "text/plain" });
+                    return res.end("Not Found");
+                }
             }
         } else if (req.method === "PUT") {
             const chunks = [];
