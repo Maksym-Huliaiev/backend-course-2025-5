@@ -45,9 +45,22 @@ const server = http.createServer(async (req, res) => {
                 res.writeHead(404, { "Content-Type": "text/plain" });
                 return res.end("Not Found");
             }
+        } else if (req.method === "PUT") {
+            const chunks = [];
+            for await (const chunk of req) chunks.push(chunk);
+            const body = Buffer.concat(chunks);
+
+            if (!body.length) {
+                res.writeHead(400, { "Content-Type": "text/plain" });
+                return res.end("Bad Request: empty body");
+            }
+
+            await fs.promises.writeFile(filePath, body);
+            res.writeHead(201, { "Content-Type": "text/plain" });
+            return res.end("Created");
         } else {
             res.writeHead(405, { "Content-Type": "text/plain" });
-            return res.end("Method Not Allowed\n");
+            return res.end("Method Not Allowed");
         }
 
     } catch (err) {
